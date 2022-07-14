@@ -10,14 +10,15 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+
 public class AppTest {
 
-    private static final String TARGET_DIR = "C:\\Users\\Professional\\Desktop\\Data\\Works\\spark_practice\\src\\main\\resources\\output\\*";
-    private static final String INPUT_DIR = "C:\\Users\\Professional\\Desktop\\Data\\Works\\spark_practice\\src\\test\\resources\\test_input.csv";
+    private static final String ABSOLUTE_PATH = App.ABSOLUTE_PATH;
+    private static final String TARGET_DIR = System.getProperty("user.dir") + "\\output";
+    private static final String INPUT_PATH = ABSOLUTE_PATH + "\\src\\test\\resources\\test_data.csv";
 
     @BeforeAll
     public static void setUp(){
@@ -27,24 +28,25 @@ public class AppTest {
     @Test
     public void mainMethodTest() throws IOException {
 
-        String[] args = {"src/test/resources/test_input.csv"};
+        String[] args = {INPUT_PATH};
         App.main(args);
 
-        Dataset<Row> written_df = SPARK_LOCAL
+        Dataset<Row> written_df = TEST_SESSION
                 .read()
                 .csv(TARGET_DIR);
-        assertEquals(4, written_df.count());
 
-        Dataset<Row> control_df = SPARK_LOCAL
+        Dataset<Row> control_df = TEST_SESSION
                 .read()
                 .schema(schema)
-                .csv(INPUT_DIR)
-                .drop("part_date");
+                .csv(INPUT_PATH);
 
-        assertTrue(Arrays.deepEquals(
-                (Row[]) control_df.collect(),
-                (Row[]) written_df.collect()
-        ));
+        written_df.show();
+        control_df.show();
+
+        assertEquals(control_df.count(), written_df.count());
+        assertTrue(written_df.collectAsList().containsAll(control_df.collectAsList()));
+        assertTrue(control_df.collectAsList().containsAll(written_df.collectAsList()));
+
     }
 
     @Test
@@ -56,10 +58,10 @@ public class AppTest {
         assertEquals("file address expected", thrown.getMessage());
     }
 
-    private final SparkSession SPARK_LOCAL = SparkSession
+    private final SparkSession TEST_SESSION = SparkSession
             .builder()
-            .appName("SparkTesting")
-            .master("local[2]")
+            .appName("SparkPracticeTest")
+            .master("local[1]")
             .getOrCreate();
 
     private final StructType schema = DataTypes.createStructType(new StructField[] {

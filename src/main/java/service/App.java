@@ -9,27 +9,20 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Objects;
 import java.util.Properties;
 
 
 @Slf4j
 public class App {
 
-    private static final String CONFIG_PATH = Objects.requireNonNull(Thread.currentThread()
-                    .getContextClassLoader()
-                    .getResource("app.properties"))
-                    .getPath();
-
-    private static final String TARGET_PATH = Objects.requireNonNull(Thread.currentThread()
-                    .getContextClassLoader()
-                    .getResource(""))
-                    .getPath() + "\\output";
+    public static final String ABSOLUTE_PATH = new File("").getAbsolutePath();
+    private static final String CONFIG_PATH = ABSOLUTE_PATH + "\\src\\main\\resources\\app.properties";
+    private static final String TARGET_DIR = System.getProperty("user.dir") + "\\output";
 
     private static final Properties props = new Properties();
-
 
     public static void main(String[] args) throws IOException {
 
@@ -51,8 +44,8 @@ public class App {
 
         SparkSession spark = SparkSession
                 .builder()
-                .appName("SparkTesting")
-                .master("local[2]")
+                .appName("SparkPractice")
+                .master("local[1]")
                 .getOrCreate();
 
         Dataset<Row> inputTable = spark
@@ -63,12 +56,13 @@ public class App {
                 .load(args[0]);
 
         inputTable
+                .repartition(1)
                 .write()
                 .format("csv")
                 .partitionBy(partCol)
                 .mode(SaveMode.Overwrite)
-                .save(TARGET_PATH);
+                .save(TARGET_DIR);
 
-        log.info("Writing complete. Output directory: {}", TARGET_PATH);
+        log.info("Writing complete. Output directory: {}", TARGET_DIR);
     }
 }
